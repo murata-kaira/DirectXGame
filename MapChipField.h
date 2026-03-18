@@ -8,8 +8,9 @@
 using namespace KamataEngine;
 
 enum class MapChipType {
-	kBlank, // 空白
-	kBlock, // ブロック
+	kBlank,      // 空白
+	kBlock,      // ブロック（足場）
+	kBlockAbove, // 足場の上に乗るブロック
 };
 
 struct MapChipData {

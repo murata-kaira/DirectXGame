@@ -122,10 +122,15 @@ void GameScene::GenerateBlocks() {
 
 	for (uint32_t i = 0; i < numBlockVertical; ++i) {
 		for (uint32_t j = 0; j < numBlockHorizontal; ++j) {
-			if (mapChipField_->GetMapChipTypeByIndex(j, i) == MapChipType::kBlock) {
+			MapChipType type = mapChipField_->GetMapChipTypeByIndex(j, i);
+			if (type == MapChipType::kBlock || type == MapChipType::kBlockAbove) {
 				WorldTransform* worldTransform = new WorldTransform();
 				worldTransform->Initialize();
 				worldTransform->translation_ = mapChipField_->GetMapChipPositionByIndex(j, i);
+				if (type == MapChipType::kBlockAbove) {
+					// 足場の上に乗るブロックはY=1.0（1段高い位置）に配置する
+					worldTransform->translation_.y = 1.0f;
+				}
 				worldTransformBlocks_[i][j] = worldTransform;
 			}
 		}
