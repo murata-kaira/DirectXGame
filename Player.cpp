@@ -75,24 +75,12 @@ void Player::Draw() {
  * @brief 移動入力の処理
  */
 void Player::InputMove() {
-	//Vector3 acceleration = {};
-	//
-	//if (Input::GetInstance()->PushKey(DIK_RIGHT)) {
-	//	acceleration.x += kAcceleration;
-	//} else if (Input::GetInstance()->PushKey(DIK_LEFT)) {
-	//	acceleration.x -= kAcceleration;
-	//}
-	//  移動アニメーション中は新たな入力を受け付けない
+	// 移動アニメーション中は新たな入力を受け付けない
 	if (isMoving_)
 		return;
-	int32_t dx = 0, dz = 0;
-	 
 
-	/*if (Input::GetInstance()->PushKey(DIK_UP)) {
-		acceleration.z += kAcceleration;
-	} else if (Input::GetInstance()->PushKey(DIK_DOWN)) {
-		acceleration.z -= kAcceleration;
-	}*/
+	int32_t dx = 0, dz = 0;
+
 	if (Input::GetInstance()->TriggerKey(DIK_RIGHT)) {
 		dx = 1;
 	} else if (Input::GetInstance()->TriggerKey(DIK_LEFT)) {
@@ -103,50 +91,34 @@ void Player::InputMove() {
 		dz = -1; // グリッドの yIndex が減る → ワールド Z が増える（前進）
 	} else if (Input::GetInstance()->TriggerKey(DIK_DOWN)) {
 		dz = 1; // グリッドの yIndex が増える → ワールド Z が減る（後退）
-
-
-	/*if (acceleration.x != 0.0f) velocity_.x += acceleration.x;
-	else velocity_.x *= (1.0f - kAttenuation);*/
-
-		if (dx == 0 && dz == 0)
-			return;
-
-	/*if (acceleration.z != 0.0f) velocity_.z += acceleration.z;
-	else velocity_.z *= (1.0f - kAttenuation);*/
-
-			// 現在のグリッドインデックスを取得
-		MapChipField::IndexSet currentIndex = mapChipField_->GetMapChipIndexSetByPosition(worldTransform_.translation_);
-		int32_t nextXIndex = static_cast<int32_t>(currentIndex.xIndex) + dx;
-		int32_t nextYIndex = static_cast<int32_t>(currentIndex.yIndex) + dz;
-		// 範囲外チェック
-		if (nextXIndex < 0 || nextYIndex < 0)
-			return;
-
-
-	/*velocity_.x = std::clamp(velocity_.x, -kLimitRunSpeed, kLimitRunSpeed);
-	velocity_.z = std::clamp(velocity_.z, -kLimitRunSpeed, kLimitRunSpeed);*/
-
-		// 移動先のマスが通行可能（kBlock）かチェック
-		MapChipType nextType = mapChipField_->GetMapChipTypeByIndex(static_cast<uint32_t>(nextXIndex), static_cast<uint32_t>(nextYIndex));
-		if (nextType != MapChipType::kBlock)
-			return;
-
-	/*if (std::abs(velocity_.x) <= 0.001f) velocity_.x = 0.0f;
-	if (std::abs(velocity_.z) <= 0.001f) velocity_.z = 0.0f;*/
-
-			// 移動アニメーションのセットアップ
-		moveStartPosition_ = worldTransform_.translation_;
-		moveTargetPosition_ = mapChipField_->GetMapChipPositionByIndex(static_cast<uint32_t>(nextXIndex), static_cast<uint32_t>(nextYIndex));
-		moveTargetPosition_.y = worldTransform_.translation_.y; // Y は固定
-		isMoving_ = true;
-		moveTimer_ = 0.0f;
-
-
-	/*if (acceleration.x != 0.0f || acceleration.z != 0.0f) {
-		worldTransform_.rotation_.y = std::atan2(acceleration.x, acceleration.z);*/
-		// キャラクターを移動方向に向ける
-		worldTransform_.rotation_.y = std::atan2(static_cast<float>(dx), static_cast<float>(-dz));
 	}
+
+	if (dx == 0 && dz == 0)
+		return;
+
+	// 現在のグリッドインデックスを取得
+	MapChipField::IndexSet currentIndex = mapChipField_->GetMapChipIndexSetByPosition(worldTransform_.translation_);
+	int32_t nextXIndex = static_cast<int32_t>(currentIndex.xIndex) + dx;
+	int32_t nextYIndex = static_cast<int32_t>(currentIndex.yIndex) + dz;
+
+	// 範囲外チェック
+	if (nextXIndex < 0 || nextYIndex < 0)
+		return;
+
+	// 移動先のマスが通行可能（kBlock）かチェック
+	MapChipType nextType = mapChipField_->GetMapChipTypeByIndex(static_cast<uint32_t>(nextXIndex), static_cast<uint32_t>(nextYIndex));
+	if (nextType != MapChipType::kBlock)
+		return;
+
+	// 移動アニメーションのセットアップ
+	moveStartPosition_ = worldTransform_.translation_;
+	moveTargetPosition_ = mapChipField_->GetMapChipPositionByIndex(static_cast<uint32_t>(nextXIndex), static_cast<uint32_t>(nextYIndex));
+	moveTargetPosition_.y = worldTransform_.translation_.y; // Y は固定
+	isMoving_ = true;
+	moveTimer_ = 0.0f;
+
+	// キャラクターを移動方向に向ける
+	worldTransform_.rotation_.y = std::atan2(static_cast<float>(dx), static_cast<float>(-dz));
 }
 
 /**
