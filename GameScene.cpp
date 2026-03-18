@@ -15,10 +15,8 @@ GameScene::~GameScene() {
 	delete cameraController_;
 	delete fade_;
 
-	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
-		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
-			delete worldTransformBlock;
-		}
+	for (WorldTransform* block : worldTransformBlocks_) {
+		delete block;
 	}
 	worldTransformBlocks_.clear();
 	
@@ -115,23 +113,35 @@ void GameScene::GenerateBlocks() {
 	uint32_t numBlockVertical = mapChipField_->GetNumBlockVirtical();
 	uint32_t numBlockHorizontal = mapChipField_->GetNumBlockHorizontal();
 
-	worldTransformBlocks_.resize(numBlockVertical);
-	for (uint32_t i = 0; i < numBlockVertical; ++i) {
-		worldTransformBlocks_[i].resize(numBlockHorizontal, nullptr);
-	}
-
 	for (uint32_t i = 0; i < numBlockVertical; ++i) {
 		for (uint32_t j = 0; j < numBlockHorizontal; ++j) {
 			MapChipType type = mapChipField_->GetMapChipTypeByIndex(j, i);
-			if (type == MapChipType::kBlock || type == MapChipType::kBlockAbove) {
-				WorldTransform* worldTransform = new WorldTransform();
-				worldTransform->Initialize();
-				worldTransform->translation_ = mapChipField_->GetMapChipPositionByIndex(j, i);
-				if (type == MapChipType::kBlockAbove) {
-					// 足場の上に乗るブロックはY=1.0（1段高い位置）に配置する
-					worldTransform->translation_.y = 1.0f;
+			if (type == MapChipType::kBlank) continue;
+
+			Vector3 basePos = mapChipField_->GetMapChipPositionByIndex(j, i);
+
+			if (type == MapChipType::kBlock) {
+				// 足場ブロック：Y=0
+				WorldTransform* wt = new WorldTransform();
+				wt->Initialize();
+				wt->translation_ = basePos;
+				worldTransformBlocks_.push_back(wt);
+			} else if (type == MapChipType::kBlockAbove) {
+				// 足場の上に乗るブロック：Y=1
+				WorldTransform* wt = new WorldTransform();
+				wt->Initialize();
+				wt->translation_ = basePos;
+				wt->translation_.y = 1.0f;
+				worldTransformBlocks_.push_back(wt);
+			} else if (type == MapChipType::kBlockStack) {
+				// 重なりブロック：Y=0・Y=1・Y=2 の3段をまとめて生成
+				for (int layer = 0; layer <= 2; ++layer) {
+					WorldTransform* wt = new WorldTransform();
+					wt->Initialize();
+					wt->translation_ = basePos;
+					wt->translation_.y = static_cast<float>(layer);
+					worldTransformBlocks_.push_back(wt);
 				}
-				worldTransformBlocks_[i][j] = worldTransform;
 			}
 		}
 	}
@@ -180,10 +190,8 @@ void GameScene::Update() {
 		camera_.UpdateMatrix();
 	}
 
-	for (auto& line : worldTransformBlocks_) {
-		for (auto& block : line) {
-			if (block) WorldTransformUpdate(*block);
-		}
+	for (WorldTransform* block : worldTransformBlocks_) {
+		if (block) WorldTransformUpdate(*block);
 	}
 }
 
@@ -201,10 +209,8 @@ void GameScene::Draw() {
 		player_->Draw(); 
 	}
 
-	for (auto& line : worldTransformBlocks_) {
-		for (auto& block : line) {
-			if (block) blockModel_->Draw(*block, camera_);
-		}
+	for (WorldTransform* block : worldTransformBlocks_) {
+		if (block) blockModel_->Draw(*block, camera_);
 	}
 
 	if (player_->IsDead() && deathParticles_) {

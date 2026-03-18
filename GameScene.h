@@ -72,6 +72,6 @@ private:
 	Fade* fade_ = nullptr;      // 画面フェード演出
 	bool finished_ = false;    // シーン終了フラグ
 	
-	// ブロックの座標情報などのリスト
-	std::vector<std::vector<KamataEngine::WorldTransform*>> worldTransformBlocks_;
+	// ブロックの座標情報などのリスト（1セルに複数段を持てるフラットなリスト）
+	std::vector<KamataEngine::WorldTransform*> worldTransformBlocks_;
 };

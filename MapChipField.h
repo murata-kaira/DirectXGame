@@ -10,7 +10,8 @@ using namespace KamataEngine;
 enum class MapChipType {
 	kBlank,      // 空白
 	kBlock,      // ブロック（足場）
-	kBlockAbove, // 足場の上に乗るブロック
+	kBlockAbove, // 足場の上に乗るブロック（Y=1）
+	kBlockStack, // 重なりブロック：同じ位置にY=0・Y=1・Y=2の3段を生成
 };
 
 struct MapChipData {
