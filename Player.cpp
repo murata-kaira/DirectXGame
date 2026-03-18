@@ -102,7 +102,9 @@ void Player::InputMove() {
 	int32_t nextYIndex = static_cast<int32_t>(currentIndex.yIndex) + dz;
 
 	// 範囲外チェック
-	if (nextXIndex < 0 || nextYIndex < 0)
+	if (nextXIndex < 0 || nextYIndex < 0 ||
+	    nextXIndex >= static_cast<int32_t>(mapChipField_->GetNumBlockHorizontal()) ||
+	    nextYIndex >= static_cast<int32_t>(mapChipField_->GetNumBlockVirtical()))
 		return;
 
 	// 移動先のマスが通行可能（kBlock）かチェック
