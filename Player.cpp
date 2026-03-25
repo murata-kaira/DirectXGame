@@ -31,6 +31,7 @@ void Player::Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera
  */
 void Player::Update() { 
 	InputMove();
+	TryDestroyBlock();
 	
 	/*CollisionMapInfo collisionMapInfo = {};
 	collisionMapInfo.move = velocity_; 
@@ -96,6 +97,12 @@ void Player::InputMove() {
 	if (dx == 0 && dz == 0)
 		return;
 
+	// 向きを記録（破壊アクション用）
+	if (dx != 0 || dz != 0) {
+		lastDx_ = dx;
+		lastDz_ = dz;
+	}
+
 	// 現在のグリッドインデックスを取得
 	MapChipField::IndexSet currentIndex = mapChipField_->GetMapChipIndexSetByPosition(worldTransform_.translation_);
 	int32_t nextXIndex = static_cast<int32_t>(currentIndex.xIndex) + dx;
@@ -121,6 +128,35 @@ void Player::InputMove() {
 
 	// キャラクターを移動方向に向ける
 	worldTransform_.rotation_.y = std::atan2(static_cast<float>(dx), static_cast<float>(-dz));
+}
+
+/**
+ * @brief 向いている方向の隣接ブロックを破壊する（スペースキー）
+ */
+void Player::TryDestroyBlock() {
+	// 移動中は破壊できない
+	if (isMoving_) return;
+	if (!Input::GetInstance()->TriggerKey(DIK_SPACE)) return;
+	// 向きが未確定のときは何もしない
+	if (lastDx_ == 0 && lastDz_ == 0) return;
+
+	MapChipField::IndexSet currentIndex = mapChipField_->GetMapChipIndexSetByPosition(worldTransform_.translation_);
+	int32_t targetX = currentIndex.xIndex + lastDx_;
+	int32_t targetY = currentIndex.yIndex + lastDz_;
+
+	// 範囲外チェック
+	if (targetX < 0 || targetY < 0 ||
+	    targetX >= static_cast<int32_t>(mapChipField_->GetNumBlockHorizontal()) ||
+	    targetY >= static_cast<int32_t>(mapChipField_->GetNumBlockVirtical()))
+		return;
+
+	// 対象セルが空白でなければ破壊する
+	MapChipType type = mapChipField_->GetMapChipTypeByIndex(static_cast<uint32_t>(targetX), static_cast<uint32_t>(targetY));
+	if (type == MapChipType::kBlank) return;
+
+	mapChipField_->SetMapChipTypeByIndex(static_cast<uint32_t>(targetX), static_cast<uint32_t>(targetY), MapChipType::kBlank);
+	destroyedBlockIndex_ = {targetX, targetY};
+	hasDestroyedBlock_ = true;
 }
 
 /**

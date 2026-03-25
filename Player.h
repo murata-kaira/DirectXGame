@@ -54,11 +54,21 @@ public:
 	Vector3 GetWorldPosition();
 	bool IsDead() const { return isDead_; }
 
+	/// @brief このフレームにブロックが破壊されたか
+	bool HasDestroyedBlock() const { return hasDestroyedBlock_; }
+	/// @brief 破壊されたブロックのグリッドインデックスを取得
+	MapChipField::IndexSet GetDestroyedBlockIndex() const { return destroyedBlockIndex_; }
+	/// @brief 破壊フラグをクリア（GameScene が読み取った後に呼ぶ）
+	void ClearDestroyedBlock() { hasDestroyedBlock_ = false; }
+
 private:
 	// --- 内部処理用関数 ---
 
 	/// @brief 移動入力の処理
 	void InputMove();
+
+	/// @brief 向いている方向に隣接するブロックを破壊する（スペースキー）
+	void TryDestroyBlock();
 
 	/// @brief マップとの当たり判定
 	struct CollisionMapInfo {
@@ -98,6 +108,12 @@ private:
 	bool onGround_ = true;           // 地面に足がついているか
 	bool isDead_ = false;            // 死亡フラグ
 	MapChipField* mapChipField_ = nullptr; // マップデータへの参照
+
+	// --- 向き・破壊情報 ---
+	int32_t lastDx_ = 0;  // 最後の移動方向X（0の場合は未移動）
+	int32_t lastDz_ = 0;  // 最後の移動方向Z（0の場合は未移動）
+	bool hasDestroyedBlock_ = false;            // このフレームにブロックを破壊したか
+	MapChipField::IndexSet destroyedBlockIndex_ = {}; // 破壊したブロックのグリッドインデックス
 
 	// --- 演出・タイマー関連 ---
 	//float turnFirstRotationY_ = 0.0f; // 旋回開始時の角度

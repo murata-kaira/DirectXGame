@@ -36,6 +36,8 @@ public:
 	bool IsFinished() const { return finished_; }
 
 private:
+	/// @brief 指定グリッドインデックスのブロックオブジェクトをすべて削除
+	void RemoveBlocksAtIndex(const MapChipField::IndexSet& index);
 	// --- 内部フェーズ管理 ---
 	enum class Phase {
 		kFadeIn,  // フェードイン
@@ -72,6 +74,10 @@ private:
 	Fade* fade_ = nullptr;      // 画面フェード演出
 	bool finished_ = false;    // シーン終了フラグ
 	
-	// ブロックの座標情報などのリスト（1セルに複数段を持てるフラットなリスト）
-	std::vector<KamataEngine::WorldTransform*> worldTransformBlocks_;
+	// ブロックの座標情報とグリッドインデックスのリスト（1セルに複数段を持てるフラットなリスト）
+	struct BlockObject {
+		MapChipField::IndexSet index;
+		KamataEngine::WorldTransform* transform;
+	};
+	std::vector<BlockObject> worldTransformBlocks_;
 };

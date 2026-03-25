@@ -15,8 +15,8 @@ GameScene::~GameScene() {
 	delete cameraController_;
 	delete fade_;
 
-	for (WorldTransform* block : worldTransformBlocks_) {
-		delete block;
+	for (BlockObject& block : worldTransformBlocks_) {
+		delete block.transform;
 	}
 	worldTransformBlocks_.clear();
 	
@@ -119,20 +119,21 @@ void GameScene::GenerateBlocks() {
 			if (type == MapChipType::kBlank) continue;
 
 			Vector3 basePos = mapChipField_->GetMapChipPositionByIndex(j, i);
+			MapChipField::IndexSet idx = {static_cast<int32_t>(j), static_cast<int32_t>(i)};
 
 			if (type == MapChipType::kBlock) {
 				// 足場ブロック：Y=0
 				WorldTransform* wt = new WorldTransform();
 				wt->Initialize();
 				wt->translation_ = basePos;
-				worldTransformBlocks_.push_back(wt);
+				worldTransformBlocks_.push_back({idx, wt});
 			} else if (type == MapChipType::kBlockAbove) {
 				// 足場の上に乗るブロック：Y=1
 				WorldTransform* wt = new WorldTransform();
 				wt->Initialize();
 				wt->translation_ = basePos;
 				wt->translation_.y = 1.0f;
-				worldTransformBlocks_.push_back(wt);
+				worldTransformBlocks_.push_back({idx, wt});
 			} else if (type == MapChipType::kBlockStack) {
 				// 重なりブロック：Y=0・Y=1・Y=2 の3段をまとめて生成
 				for (int layer = 0; layer <= 2; ++layer) {
@@ -140,7 +141,7 @@ void GameScene::GenerateBlocks() {
 					wt->Initialize();
 					wt->translation_ = basePos;
 					wt->translation_.y = static_cast<float>(layer);
-					worldTransformBlocks_.push_back(wt);
+					worldTransformBlocks_.push_back({idx, wt});
 				}
 			}
 		}
@@ -167,6 +168,11 @@ void GameScene::Update() {
 
 	case Phase::kPlay:
 		player_->Update();
+		// プレイヤーがブロックを破壊した場合、対応するブロックオブジェクトを除去する
+		if (player_->HasDestroyedBlock()) {
+			RemoveBlocksAtIndex(player_->GetDestroyedBlockIndex());
+			player_->ClearDestroyedBlock();
+		}
 		CheckAllCollisions();
 		break;
 
@@ -190,8 +196,8 @@ void GameScene::Update() {
 		camera_.UpdateMatrix();
 	}
 
-	for (WorldTransform* block : worldTransformBlocks_) {
-		if (block) WorldTransformUpdate(*block);
+	for (BlockObject& block : worldTransformBlocks_) {
+		if (block.transform) WorldTransformUpdate(*block.transform);
 	}
 }
 
@@ -209,8 +215,8 @@ void GameScene::Draw() {
 		player_->Draw(); 
 	}
 
-	for (WorldTransform* block : worldTransformBlocks_) {
-		if (block) blockModel_->Draw(*block, camera_);
+	for (BlockObject& block : worldTransformBlocks_) {
+		if (block.transform) blockModel_->Draw(*block.transform, camera_);
 	}
 
 	if (player_->IsDead() && deathParticles_) {
@@ -229,4 +235,19 @@ void GameScene::Draw() {
 void GameScene::CheckAllCollisions() {
 	// エネミー削除に伴い、現在はプレイヤーとマップの判定のみ（Playerクラス内で処理済み）
 	// 将来的にアイテム等の判定が必要になればここに追加する
+}
+
+/**
+ * @brief 指定グリッドインデックスのブロックオブジェクトをすべて削除
+ */
+void GameScene::RemoveBlocksAtIndex(const MapChipField::IndexSet& index) {
+	auto it = worldTransformBlocks_.begin();
+	while (it != worldTransformBlocks_.end()) {
+		if (it->index.xIndex == index.xIndex && it->index.yIndex == index.yIndex) {
+			delete it->transform;
+			it = worldTransformBlocks_.erase(it);
+		} else {
+			++it;
+		}
+	}
 }
