@@ -2,7 +2,6 @@
 
 #include "Player.h"
 #include <cassert>
-#include <numbers>
 #include <algorithm>
 #include "Math.h"
 #include "MapChipField.h"
@@ -31,33 +30,20 @@ void Player::Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera
  */
 void Player::Update() { 
 	InputMove();
-	
-	/*CollisionMapInfo collisionMapInfo = {};
-	collisionMapInfo.move = velocity_; 
-	CheckMapCollision(collisionMapInfo);
-
-	worldTransform_.translation_ += collisionMapInfo.move;*/
 
 	// マス移動アニメーション
 	if (isMoving_) {
 		moveTimer_ += 1.0f / 60.0f;
 		float t = moveTimer_ / kMoveTime;
 
-		/*UpdateOnWall(collisionMapInfo);
-
-		if (turnTimer_ > 0.0f) {
-		    turnTimer_ = std::max(turnTimer_ - (1.0f / 60.0f), 0.0f);
-		    worldTransform_.rotation_.y = EaseInOut(1.0f - (turnTimer_ / kTimeTurn), turnFirstRotationY_, worldTransform_.rotation_.y);
-		}*/
-
 		if (t >= 1.0f) {
 			// 移動完了：目標マスの中心にスナップ
 			worldTransform_.translation_ = moveTargetPosition_;
 			isMoving_ = false;
 		} else {
-			// 線形補間（直線移動）
-			worldTransform_.translation_.x = moveStartPosition_.x + (moveTargetPosition_.x - moveStartPosition_.x) * t;
-			worldTransform_.translation_.z = moveStartPosition_.z + (moveTargetPosition_.z - moveStartPosition_.z) * t;
+			// EaseInOut で滑らかに補間
+			worldTransform_.translation_.x = EaseInOut(t, moveStartPosition_.x, moveTargetPosition_.x);
+			worldTransform_.translation_.z = EaseInOut(t, moveStartPosition_.z, moveTargetPosition_.z);
 		}
 	}
 
@@ -71,82 +57,115 @@ void Player::Draw() {
 	model_->Draw(worldTransform_, *camera_, textureHandle_); 
 }
 
-/**
- * @brief 移動入力の処理
+/**i
+ * @brief 移動入力の処理（マス単位の移動）
  */
 void Player::InputMove() {
-	//Vector3 acceleration = {};
-	//
-	//if (Input::GetInstance()->PushKey(DIK_RIGHT)) {
-	//	acceleration.x += kAcceleration;
-	//} else if (Input::GetInstance()->PushKey(DIK_LEFT)) {
-	//	acceleration.x -= kAcceleration;
-	//}
-	//  移動アニメーション中は新たな入力を受け付けない
-	if (isMoving_)
-		return;
-	int32_t dx = 0, dz = 0;
-	 
+	//移動アニメーション中は入力を受け付けない
+	if (isMoving_) return;
 
-	/*if (Input::GetInstance()->PushKey(DIK_UP)) {
-		acceleration.z += kAcceleration;
-	} else if (Input::GetInstance()->PushKey(DIK_DOWN)) {
-		acceleration.z -= kAcceleration;
-	}*/
-	if (Input::GetInstance()->TriggerKey(DIK_RIGHT)) {
-		dx = 1;
-	} else if (Input::GetInstance()->TriggerKey(DIK_LEFT)) {
-		dx = -1;
+	int32_t dx = 0, dz = 0;
+
+	if (Input::GetInstance()->PushKey(DIK_RIGHT)) {
+		dx += 1;
 	}
 
-	if (Input::GetInstance()->TriggerKey(DIK_UP)) {
-		dz = -1; // グリッドの yIndex が減る → ワールド Z が増える（前進）
-	} else if (Input::GetInstance()->TriggerKey(DIK_DOWN)) {
-		dz = 1; // グリッドの yIndex が増える → ワールド Z が減る（後退）
+	if (Input::GetInstance()->PushKey(DIK_LEFT)) {
 
+		dx -= 1;
+	}
+	if (Input::GetInstance()->PushKey(DIK_UP)) {
 
-	/*if (acceleration.x != 0.0f) velocity_.x += acceleration.x;
-	else velocity_.x *= (1.0f - kAttenuation);*/
+		dz -= 1;
+	}
 
-		if (dx == 0 && dz == 0)
-			return;
+	if (Input::GetInstance()->PushKey(DIK_DOWN)) {
+		dz += 1;
+	}
 
-	/*if (acceleration.z != 0.0f) velocity_.z += acceleration.z;
-	else velocity_.z *= (1.0f - kAttenuation);*/
+	//斜めの方向処理
+	if (dx != 0 || dz != 0) {
+		float len = std::sqrt(float(dx * dx + dz * dz));
+		moveDirection_.x = dx / len;
+		moveDirection_.z = dz / len;
 
-			// 現在のグリッドインデックスを取得
-		MapChipField::IndexSet currentIndex = mapChipField_->GetMapChipIndexSetByPosition(worldTransform_.translation_);
-		int32_t nextXIndex = static_cast<int32_t>(currentIndex.xIndex) + dx;
-		int32_t nextYIndex = static_cast<int32_t>(currentIndex.yIndex) + dz;
-		// 範囲外チェック
-		if (nextXIndex < 0 || nextYIndex < 0)
-			return;
+		worldTransform_.rotation_.y = std::atan2(moveDirection_.x, -moveDirection_.z);
+	}
 
+	  // SPACEでスライド開始
+	if (Input::GetInstance()->TriggerKey(DIK_SPACE)) {
 
-	/*velocity_.x = std::clamp(velocity_.x, -kLimitRunSpeed, kLimitRunSpeed);
-	velocity_.z = std::clamp(velocity_.z, -kLimitRunSpeed, kLimitRunSpeed);*/
-
-		// 移動先のマスが通行可能（kBlock）かチェック
-		MapChipType nextType = mapChipField_->GetMapChipTypeByIndex(static_cast<uint32_t>(nextXIndex), static_cast<uint32_t>(nextYIndex));
-		if (nextType != MapChipType::kBlock)
-			return;
-
-	/*if (std::abs(velocity_.x) <= 0.001f) velocity_.x = 0.0f;
-	if (std::abs(velocity_.z) <= 0.001f) velocity_.z = 0.0f;*/
-
-			// 移動アニメーションのセットアップ
 		moveStartPosition_ = worldTransform_.translation_;
-		moveTargetPosition_ = mapChipField_->GetMapChipPositionByIndex(static_cast<uint32_t>(nextXIndex), static_cast<uint32_t>(nextYIndex));
-		moveTargetPosition_.y = worldTransform_.translation_.y; // Y は固定
+		moveTargetPosition_ = GetSlideTargetPosition();
+
+		// 動かないなら無視
+		if (moveStartPosition_.x == moveTargetPosition_.x && moveStartPosition_.z == moveTargetPosition_.z) {
+			return;
+		}
+
 		isMoving_ = true;
 		moveTimer_ = 0.0f;
-
-
-	/*if (acceleration.x != 0.0f || acceleration.z != 0.0f) {
-		worldTransform_.rotation_.y = std::atan2(acceleration.x, acceleration.z);*/
-		// キャラクターを移動方向に向ける
-		worldTransform_.rotation_.y = std::atan2(static_cast<float>(dx), static_cast<float>(-dz));
 	}
+
+}
+
+Vector3 Player::GetSlideTargetPosition() {
+
+	auto current = mapChipField_->GetMapChipIndexSetByPosition(worldTransform_.translation_);
+
+	int x = static_cast<int>(current.xIndex);
+	int z = static_cast<int>(current.yIndex); 
+
+	int stepX = static_cast<int>(std::round(moveDirection_.x));
+	int stepZ = static_cast<int>(std::round(moveDirection_.z));
+
+	while (true) {
+
+		bool moved = false;
+
+		//X方向
+		if (stepX != 0) {
+			int nextX = x + stepX;
+
+			if (nextX >= 0) {
+				auto type = mapChipField_->GetMapChipTypeByIndex(nextX, z);
+
+				if (type == MapChipType::kBlock) {
+					x = nextX;
+					moved = true;
+
+					//ここで壊す処理入れる？
+				}
+			}
+		}
+
+		//Z方向
+		if (stepZ != 0) {
+			int nextZ = z + stepZ;
+
+			if (nextZ >= 0) {
+				auto type = mapChipField_->GetMapChipTypeByIndex(x, nextZ);
+
+				if (type == MapChipType::kBlock) {
+					z = nextZ;
+					moved = true;
+
+			// ここで壊す処理入れる？
+				}
+			}
+		}
+
+		if (!moved) {
+			break;
+		}
+
+	}
+
+	Vector3 pos = mapChipField_->GetMapChipPositionByIndex((uint32_t)x, (uint32_t)z);
+
+	pos.y = worldTransform_.translation_.y;
+
+	return pos;
 }
 
 /**
@@ -252,7 +271,11 @@ void Player::UpdateOnWall(const CollisionMapInfo& info) {
 	}
 }
 
-
+float Player::EaseInOut(float t, float start, float end) {
+	t = std::clamp(t, 0.0f, 1.0f);
+	float t_eased = t * t * (3.0f - 2.0f * t);
+	return start + (end - start) * t_eased;
+}
 
 Vector3 Player::GetWorldPosition() {
 	return {worldTransform_.matWorld_.m[3][0], worldTransform_.matWorld_.m[3][1], worldTransform_.matWorld_.m[3][2]};
