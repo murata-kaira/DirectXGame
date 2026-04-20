@@ -2,17 +2,20 @@
 #include <Windows.h>
 #include "GameScene.h"
 #include "TitleScene.h" 
+#include "GameSelectScene.h"
 
 using namespace KamataEngine;
 
 // --- グローバル変数 ---
 TitleScene* titleScene = nullptr; // タイトルシーンのインスタンス
+GameSelectScene* gameSelectScene = nullptr; // ゲーム選択シーンのインスタンス
 GameScene* gameScene = nullptr;   // ゲームシーンのインスタンス
 
 // シーンの種類を定義
 enum class Scene {
 	kUnknown = 0, // 未定義
 	kTitle,       // タイトル
+	kGameSelect,  // ゲーム選択
 	kGame,        // ゲーム本編
 };
 
@@ -25,13 +28,28 @@ Scene scene = Scene::kUnknown; // 現在のシーン
 void ChangeScene() {
 	switch (scene) {
 	case Scene::kTitle:
-		// タイトルシーンが終了していたら、ゲームシーンへ
+		// タイトルシーンが終了していたら、ゲーム選択シーンへ
 		if (titleScene->IsFinished()) {
-			scene = Scene::kGame;
+			scene = Scene::kGameSelect;
 			
 			// タイトルのメモリを解放
 			delete titleScene;
 			titleScene = nullptr;
+
+			// ゲーム選択シーンの作成と初期化
+			gameSelectScene = new GameSelectScene;
+			gameSelectScene->Initialize();
+		}
+		break;
+
+	case Scene::kGameSelect:
+		// ゲーム選択シーンが終了していたら、ゲームシーンへ
+		if (gameSelectScene->IsFinished()) {
+			scene = Scene::kGame;
+
+			// ゲーム選択シーンのメモリを解放
+			delete gameSelectScene;
+			gameSelectScene = nullptr;
 
 			// ゲームシーンの作成と初期化
 			gameScene = new GameScene;
@@ -64,6 +82,9 @@ void UpdateScene() {
 	case Scene::kTitle:
 		if (titleScene) titleScene->Update();
 		break;
+	case Scene::kGameSelect:
+		if (gameSelectScene) gameSelectScene->Update();
+		break;
 	case Scene::kGame:
 		if (gameScene) gameScene->Update();
 		break;
@@ -77,6 +98,9 @@ void DrawScene() {
 	switch (scene) {
 	case Scene::kTitle:
 		if (titleScene) titleScene->Draw();
+		break;
+	case Scene::kGameSelect:
+		if (gameSelectScene) gameSelectScene->Draw();
 		break;
 	case Scene::kGame:
 		if (gameScene) gameScene->Draw();
@@ -128,6 +152,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	// --- 終了処理 ---
 	// メモリの解放を忘れずに行う
 	delete titleScene;
+	delete gameSelectScene;
 	delete gameScene;
 	
 	// エンジンの終了処理
