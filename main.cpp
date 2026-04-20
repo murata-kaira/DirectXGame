@@ -1,23 +1,22 @@
 #include "KamataEngine.h"
 #include <Windows.h>
 #include "GameScene.h"
-#include "TitleScene.h" 
+#include "TitleScene.h"
+#include "StageSelectScene.h"
 
 using namespace KamataEngine;
 
 // --- グローバル変数 ---
-TitleScene* titleScene = nullptr; // タイトルシーンのインスタンス
-GameScene* gameScene = nullptr;   // ゲームシーンのインスタンス
-
-// ステージ管理
-int currentStage = 1;             // 現在のステージ番号
-const int kMaxStage = 2;          // ステージの最大数
+TitleScene* titleScene = nullptr;             // タイトルシーンのインスタンス
+GameScene* gameScene = nullptr;               // ゲームシーンのインスタンス
+StageSelectScene* stageSelectScene = nullptr;  // ステージ選択シーンのインスタンス
 
 // シーンの種類を定義
 enum class Scene {
-	kUnknown = 0, // 未定義
-	kTitle,       // タイトル
-	kGame,        // ゲーム本編
+	kUnknown = 0,  // 未定義
+	kTitle,        // タイトル
+	kStageSelect,  // ステージ選択
+	kGame,         // ゲーム本編
 };
 
 Scene scene = Scene::kUnknown; // 現在のシーン
@@ -29,46 +28,50 @@ Scene scene = Scene::kUnknown; // 現在のシーン
 void ChangeScene() {
 	switch (scene) {
 	case Scene::kTitle:
-		// タイトルシーンが終了していたら、ゲームシーンへ
+		// タイトルシーンが終了していたら、ステージ選択シーンへ
 		if (titleScene->IsFinished()) {
-			scene = Scene::kGame;
-			
+			scene = Scene::kStageSelect;
+
 			// タイトルのメモリを解放
 			delete titleScene;
 			titleScene = nullptr;
 
-			// ステージ1から開始
-			currentStage = 1;
+			// ステージ選択シーンの作成と初期化
+			stageSelectScene = new StageSelectScene;
+			stageSelectScene->Initialize();
+		}
+		break;
+
+	case Scene::kStageSelect:
+		// ステージ選択シーンが終了していたら、ゲームシーンへ
+		if (stageSelectScene->IsFinished()) {
+			scene = Scene::kGame;
+
+			// 選択されたステージ番号を取得
+			int selectedStage = stageSelectScene->GetSelectedStage();
+
+			// ステージ選択シーンのメモリを解放
+			delete stageSelectScene;
+			stageSelectScene = nullptr;
 
 			// ゲームシーンの作成と初期化
 			gameScene = new GameScene;
-			gameScene->Initialize(currentStage);
+			gameScene->Initialize(selectedStage);
 		}
 		break;
 
 	case Scene::kGame:
-		// ゲームシーンが終了していたら
+		// ゲームシーンが終了していたら、ステージ選択シーンへ
 		if (gameScene->IsFinished()) {
-			if (gameScene->IsCleared() && currentStage < kMaxStage) {
-				// ステージクリア＆次のステージがある場合 → 次のステージへ
-				delete gameScene;
-				gameScene = nullptr;
+			scene = Scene::kStageSelect;
 
-				currentStage++;
-				gameScene = new GameScene;
-				gameScene->Initialize(currentStage);
-			} else {
-				// 死亡 or 最終ステージクリア → タイトルシーンへ
-				scene = Scene::kTitle;
+			// ゲームシーンのメモリを解放
+			delete gameScene;
+			gameScene = nullptr;
 
-				// ゲームシーンのメモリを解放
-				delete gameScene;
-				gameScene = nullptr;
-
-				// タイトルシーンの作成と初期化
-				titleScene = new TitleScene;
-				titleScene->Initialize();
-			}
+			// ステージ選択シーンの作成と初期化
+			stageSelectScene = new StageSelectScene;
+			stageSelectScene->Initialize();
 		}
 		break;
 	}
@@ -81,6 +84,9 @@ void UpdateScene() {
 	switch (scene) {
 	case Scene::kTitle:
 		if (titleScene) titleScene->Update();
+		break;
+	case Scene::kStageSelect:
+		if (stageSelectScene) stageSelectScene->Update();
 		break;
 	case Scene::kGame:
 		if (gameScene) gameScene->Update();
@@ -95,6 +101,9 @@ void DrawScene() {
 	switch (scene) {
 	case Scene::kTitle:
 		if (titleScene) titleScene->Draw();
+		break;
+	case Scene::kStageSelect:
+		if (stageSelectScene) stageSelectScene->Draw();
 		break;
 	case Scene::kGame:
 		if (gameScene) gameScene->Draw();
@@ -147,6 +156,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	// メモリの解放を忘れずに行う
 	delete titleScene;
 	delete gameScene;
+	delete stageSelectScene;
 	
 	// エンジンの終了処理
 	KamataEngine::Finalize();
