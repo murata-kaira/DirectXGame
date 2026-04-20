@@ -22,10 +22,11 @@ public:
 
 private:
 	void UpdateSelectionVisual();
+	static constexpr int kSelectionOptionCount = 2;
 
 	Camera camera_;
 	WorldTransform worldTransformTitle_;
-	WorldTransform worldTransformSelection_[2];
+	WorldTransform worldTransformSelection_[kSelectionOptionCount];
 
 	Model* modelTitle_ = nullptr;
 	Model* modelPlayer_ = nullptr;
