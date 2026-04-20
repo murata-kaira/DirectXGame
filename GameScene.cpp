@@ -1,5 +1,6 @@
 #include "GameScene.h"
 #include "Math.h"
+#include <cstdio>
 
 using namespace KamataEngine;
 
@@ -67,7 +68,9 @@ void GameScene::Initialize(int stageNumber) {
 	if (stageNumber_ == 1) {
 		mapFilePath = "Resources/blocks.csv";
 	} else {
-		mapFilePath = "Resources/stage0" + std::to_string(stageNumber_) + ".csv";
+		char buf[64];
+		snprintf(buf, sizeof(buf), "Resources/stage%02d.csv", stageNumber_);
+		mapFilePath = buf;
 	}
 	mapChipField_->LoadMapChipCsv(mapFilePath);
 	GenerateBlocks();
@@ -161,7 +164,7 @@ void GameScene::ChangePhase() {
 			deathParticles_->Initialize(deathParticleModel_, &camera_, deathParticlesPosition);
 		}
 		// クリア判定（すべてのBoxが壊されたらクリア）
-		else if (!boxes_.empty()) {
+		else {
 			bool allDestroyed = true;
 			for (Box* box : boxes_) {
 				if (box->IsAlive()) {
