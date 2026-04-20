@@ -71,7 +71,7 @@ void GameSelectScene::Update() {
 	counter_ += 1.0f / 60.0f;
 	counter_ = std::fmod(counter_, 2.0f);
 
-	const float angle = counter_ / 2.0f * 2.0f * std::numbers::pi_v<float>;
+	const float angle = counter_ * std::numbers::pi_v<float>;
 	worldTransformTitle_.translation_.y = std::sin(angle) + 10.0f;
 
 	UpdateSelectionVisual();
