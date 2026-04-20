@@ -26,7 +26,7 @@ void GameSelectScene::Initialize() {
 		worldTransformSelection_[i].Initialize();
 		worldTransformSelection_[i].scale_ = {8.0f, 8.0f, 8.0f};
 		worldTransformSelection_[i].rotation_.y = 0.95f * std::numbers::pi_v<float>;
-		worldTransformSelection_[i].translation_.x = (i == 0) ? -4.0f : 4.0f;
+		worldTransformSelection_[i].translation_.x = (i == kSelectionOptionLeft) ? -4.0f : 4.0f;
 		worldTransformSelection_[i].translation_.y = -10.0f;
 	}
 
@@ -56,10 +56,10 @@ void GameSelectScene::Update() {
 		break;
 	case Phase::kMain:
 		if (input->PushKey(DIK_LEFT) || input->PushKey(DIK_UP)) {
-			selectedIndex_ = 0;
+			selectedIndex_ = kSelectionOptionLeft;
 		}
 		if (input->PushKey(DIK_RIGHT) || input->PushKey(DIK_DOWN)) {
-			selectedIndex_ = 1;
+			selectedIndex_ = kSelectionOptionRight;
 		}
 		if (input->PushKey(DIK_SPACE)) {
 			fade_->Start(Fade::Status::FadeOut, 1.0f);

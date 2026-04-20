@@ -23,6 +23,8 @@ public:
 private:
 	void UpdateSelectionVisual();
 	static constexpr int kSelectionOptionCount = 2;
+	static constexpr int kSelectionOptionLeft = 0;
+	static constexpr int kSelectionOptionRight = 1;
 
 	Camera camera_;
 	WorldTransform worldTransformTitle_;
