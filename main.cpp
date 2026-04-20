@@ -9,6 +9,10 @@ using namespace KamataEngine;
 TitleScene* titleScene = nullptr; // タイトルシーンのインスタンス
 GameScene* gameScene = nullptr;   // ゲームシーンのインスタンス
 
+// ステージ管理
+int currentStage = 1;             // 現在のステージ番号
+const int kMaxStage = 2;          // ステージの最大数
+
 // シーンの種類を定義
 enum class Scene {
 	kUnknown = 0, // 未定義
@@ -33,24 +37,38 @@ void ChangeScene() {
 			delete titleScene;
 			titleScene = nullptr;
 
+			// ステージ1から開始
+			currentStage = 1;
+
 			// ゲームシーンの作成と初期化
 			gameScene = new GameScene;
-			gameScene->Initialize();
+			gameScene->Initialize(currentStage);
 		}
 		break;
 
 	case Scene::kGame:
-		// ゲームシーンが終了していたら、タイトルシーンへ
+		// ゲームシーンが終了していたら
 		if (gameScene->IsFinished()) {
-			scene = Scene::kTitle;
+			if (gameScene->IsCleared() && currentStage < kMaxStage) {
+				// ステージクリア＆次のステージがある場合 → 次のステージへ
+				delete gameScene;
+				gameScene = nullptr;
 
-			// ゲームシーンのメモリを解放
-			delete gameScene;
-			gameScene = nullptr;
+				currentStage++;
+				gameScene = new GameScene;
+				gameScene->Initialize(currentStage);
+			} else {
+				// 死亡 or 最終ステージクリア → タイトルシーンへ
+				scene = Scene::kTitle;
 
-			// タイトルシーンの作成と初期化
-			titleScene = new TitleScene;
-			titleScene->Initialize();
+				// ゲームシーンのメモリを解放
+				delete gameScene;
+				gameScene = nullptr;
+
+				// タイトルシーンの作成と初期化
+				titleScene = new TitleScene;
+				titleScene->Initialize();
+			}
 		}
 		break;
 	}

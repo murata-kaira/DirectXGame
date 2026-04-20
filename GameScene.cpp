@@ -22,6 +22,11 @@ GameScene::~GameScene() {
 	}
 	worldTransformBlocks_.clear();
 	
+	for (Box* box : boxes_) {
+		delete box;
+	}
+	boxes_.clear();
+
 	delete deathParticles_;
 	
 	delete playerModel_;
@@ -33,7 +38,10 @@ GameScene::~GameScene() {
 /**
  * @brief 初期化
  */
-void GameScene::Initialize() {
+void GameScene::Initialize(int stageNumber) {
+	stageNumber_ = stageNumber;
+	// Box破壊カウントをリセット
+	Box::breakCount = 0;
 	// --- 1. システム・カメラの初期化 ---
 	camera_.Initialize();
 	// カメラを斜め上からの俯瞰視点に設定
@@ -53,9 +61,15 @@ void GameScene::Initialize() {
 	playerModel_ = Model::CreateFromOBJ("player");
 	deathParticleModel_ = Model::CreateFromOBJ("deathParticle");
 
-	// --- 3. マップの生成 ---
+	// --- 3. マップの生成（ステージ番号に応じたCSVを読み込み） ---
 	mapChipField_ = new MapChipField();
-	mapChipField_->LoadMapChipCsv("Resources/blocks.csv");
+	std::string mapFilePath;
+	if (stageNumber_ == 1) {
+		mapFilePath = "Resources/blocks.csv";
+	} else {
+		mapFilePath = "Resources/stage0" + std::to_string(stageNumber_) + ".csv";
+	}
+	mapChipField_->LoadMapChipCsv(mapFilePath);
 	GenerateBlocks();
 
 	// --- 4. プレイヤーの生成と初期化 ---
@@ -65,21 +79,46 @@ void GameScene::Initialize() {
 	Vector3 playerPosition = mapChipField_->GetMapChipPositionByIndex(0, 0);
 	player_->Initialize(playerModel_, &camera_, playerPosition);
 
-	//とりあえずのbox配置
-	std::vector<KamataEngine::Vector2> boxPositions = {
-	    {3,  0}, // 1つ目
-	    {4,  0},
-        {5,  0},
+	// ステージごとのbox配置
+	std::vector<KamataEngine::Vector2> boxPositions;
+	if (stageNumber_ == 1) {
+		boxPositions = {
+		    {3,  0},
+		    {4,  0},
+		    {5,  0},
 
-		{1,1},
-        {2,2},
-		{3,3},
-        {4,4},
+			{1,1},
+		    {2,2},
+			{3,3},
+		    {4,4},
 
-		{1.0},
-        {0,1},
+			{1,0},
+		    {0,1},
+		};
+	} else if (stageNumber_ == 2) {
+		boxPositions = {
+		    {2, 1},
+		    {4, 1},
+		    {6, 1},
+		    {8, 1},
 
-	};
+		    {1, 3},
+		    {3, 3},
+		    {5, 3},
+		    {7, 3},
+		    {9, 3},
+
+		    {2, 5},
+		    {4, 5},
+		    {6, 5},
+		    {8, 5},
+		    {10, 5},
+
+		    {3, 7},
+		    {5, 7},
+		    {7, 7},
+		};
+	}
 
 	for (const auto& tilePos : boxPositions) {
 		Box* newBox = new Box();
@@ -114,11 +153,26 @@ void GameScene::Initialize() {
 void GameScene::ChangePhase() {
 	switch (phase_) {
 	case Phase::kPlay:
+		// 死亡判定
 		if (player_->IsDead()) {
 			phase_ = Phase::kDeath;
 			const Vector3& deathParticlesPosition = player_->GetWorldPosition();
 			deathParticles_ = new DeathParticles;
 			deathParticles_->Initialize(deathParticleModel_, &camera_, deathParticlesPosition);
+		}
+		// クリア判定（すべてのBoxが壊されたらクリア）
+		else if (!boxes_.empty()) {
+			bool allDestroyed = true;
+			for (Box* box : boxes_) {
+				if (box->IsAlive()) {
+					allDestroyed = false;
+					break;
+				}
+			}
+			if (allDestroyed) {
+				phase_ = Phase::kClear;
+				clearTimer_ = 0.0f;
+			}
 		}
 		break;
 	case Phase::kDeath:
@@ -129,6 +183,20 @@ void GameScene::ChangePhase() {
 		break;
 	case Phase::kFadeOut:
 		if (fade_->IsFinished()) {
+			finished_ = true;
+		}
+		break;
+	case Phase::kClear:
+		// クリア演出の待機時間
+		clearTimer_ += 1.0f / 60.0f;
+		if (clearTimer_ >= kClearWaitTime) {
+			phase_ = Phase::kClearFadeOut;
+			fade_->Start(Fade::Status::FadeOut, 1.0f);
+		}
+		break;
+	case Phase::kClearFadeOut:
+		if (fade_->IsFinished()) {
+			isCleared_ = true;
 			finished_ = true;
 		}
 		break;
@@ -195,6 +263,15 @@ void GameScene::Update() {
 	case Phase::kFadeOut:
 		fade_->Update();
 		break;
+
+	case Phase::kClear:
+		// クリア演出中もプレイヤーは表示し続ける
+		player_->Update();
+		break;
+
+	case Phase::kClearFadeOut:
+		fade_->Update();
+		break;
 	}
 
 	if (isDebugCameraActive_) {
@@ -244,6 +321,7 @@ void GameScene::Draw() {
 	Model::PostDraw();
 
 	Sprite::PreDraw(dxCommon->GetCommandList());
+	fade_->Draw();
 	Sprite::PostDraw();
 }
 
