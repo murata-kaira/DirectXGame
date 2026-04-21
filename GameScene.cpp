@@ -28,6 +28,11 @@ GameScene::~GameScene() {
 	delete blockModel_;
 	delete skydomeModel_;
 	delete deathParticleModel_;
+
+	for (Box* box : boxes_) {
+		delete box;
+	}
+	boxes_.clear();
 }
 
 /**
@@ -65,28 +70,30 @@ void GameScene::Initialize() {
 	Vector3 playerPosition = mapChipField_->GetMapChipPositionByIndex(0, 0);
 	player_->Initialize(playerModel_, &camera_, playerPosition);
 
-	//とりあえずのbox配置
-	std::vector<KamataEngine::Vector2> boxPositions = {
-	    {3,  0}, // 1つ目
-	    {4,  0},
-        {5,  0},
-
-		{1,1},
-        {2,2},
-		{3,3},
-        {4,4},
-
-		{1.0},
-        {0,1},
-
+	struct BoxPlacement {
+		KamataEngine::Vector2 tilePos;
+		bool breakable;
 	};
 
-	for (const auto& tilePos : boxPositions) {
+	// とりあえずのbox配置（false は壊れない箱）
+	std::vector<BoxPlacement> boxPlacements = {
+	    {{3, 0}, true},
+	    {{4, 0}, true},
+	    {{5, 0}, true},
+	    {{1, 1}, true},
+	    {{2, 2}, true},
+	    {{3, 3}, true},
+	    {{4, 4}, true},
+	    {{1, 0}, false},
+	    {{0, 1}, false},
+	};
+
+	for (const auto& placement : boxPlacements) {
 		Box* newBox = new Box();
-		Vector3 boxPosition = mapChipField_->GetMapChipPositionByIndex(static_cast<uint32_t>(tilePos.x), static_cast<uint32_t>(tilePos.y));
+		Vector3 boxPosition = mapChipField_->GetMapChipPositionByIndex(static_cast<uint32_t>(placement.tilePos.x), static_cast<uint32_t>(placement.tilePos.y));
 		boxPosition.y = 1.0f; //とりあえずこれで座標を一個上にしている
 		Vector3 boxSize = {1.0f, 1.0f, 1.0f};
-		newBox->Initialize(blockModel_, &camera_, boxPosition);
+		newBox->Initialize(blockModel_, &camera_, boxPosition, placement.breakable);
 
 		boxes_.push_back(newBox);
 	}

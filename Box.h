@@ -8,7 +8,7 @@ class Player;
 class Box {
 public:
 	/// @brief 初期化
-	void Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera, const KamataEngine::Vector3& position);
+	void Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera, const KamataEngine::Vector3& position, bool breakable = true);
 
 	/// @brief 更新
 	void Update();
@@ -21,6 +21,7 @@ public:
 
 	// --- ゲッター ---
 	bool IsAlive() const { return alive_; }
+	bool IsBreakable() const { return breakable_; }
 	KamataEngine::Vector3 GetWorldPosition();
 	AABB GetAABB();
 
@@ -35,4 +36,5 @@ private:
 	KamataEngine::Camera* camera_ = nullptr;  
 
 	bool alive_ = true; // 壊れていないか
+	bool breakable_ = true; // 壊せるか
 };

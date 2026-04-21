@@ -3,11 +3,12 @@
 
 using namespace KamataEngine;
 
-void Box::Initialize(Model* model, KamataEngine::Camera* camera, const Vector3& position) {
+void Box::Initialize(Model* model, KamataEngine::Camera* camera, const Vector3& position, bool breakable) {
 	assert(model);
 	model_ = model;
 	camera_ = camera;
 	position_ = position;
+	breakable_ = breakable;
 
 	worldTransform_.Initialize();
 	worldTransform_.translation_ = position;
@@ -34,7 +35,7 @@ void Box::Draw() {
 }
 
 void Box::OnCollision() {
-	if (alive_) {
+	if (alive_ && breakable_) {
 		alive_ = false;
 		breakCount++; // 壊した数を加算
 	}
