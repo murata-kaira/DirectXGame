@@ -92,7 +92,6 @@ void GameScene::Initialize() {
 		Box* newBox = new Box();
 		Vector3 boxPosition = mapChipField_->GetMapChipPositionByIndex(static_cast<uint32_t>(placement.tilePos.x), static_cast<uint32_t>(placement.tilePos.y));
 		boxPosition.y = 1.0f; //とりあえずこれで座標を一個上にしている
-		Vector3 boxSize = {1.0f, 1.0f, 1.0f};
 		newBox->Initialize(blockModel_, &camera_, boxPosition, placement.breakable);
 
 		boxes_.push_back(newBox);
