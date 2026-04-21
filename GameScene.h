@@ -76,6 +76,18 @@ private:
 	// ブロックの座標情報などのリスト
 	std::vector<std::vector<KamataEngine::WorldTransform*>> worldTransformBlocks_;
 
+	// 壊せる箱のエントリ（箱本体＋タイル配置情報）
+	struct BoxEntry {
+		Box* box = nullptr;
+		uint32_t xIndex = 0; // マップX方向インデックス
+		uint32_t yIndex = 0; // マップY方向インデックス
+		uint32_t level = 0;  // 段数（1段目が最下段、1始まり）
+	};
+
+	// 箱配置の定数（Initialize と CheckAllCollisions で共有）
+	static inline const float kBoxBaseY = 1.0f;   // 1段目の Y 座標
+	static inline const float kBoxHeight = 1.0f;  // 1段あたりの高さ
+
 	//壊す箱
-	std::vector<Box*> boxes_;
+	std::vector<BoxEntry> boxes_;
 };

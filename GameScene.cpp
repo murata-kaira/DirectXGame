@@ -65,14 +65,14 @@ void GameScene::Initialize() {
 	Vector3 playerPosition = mapChipField_->GetMapChipPositionByIndex(0, 0);
 	player_->Initialize(playerModel_, &camera_, playerPosition);
 
-	struct BoxPlacement {
+	struct TilePlacement {
 		uint32_t xIndex;
 		uint32_t yIndex;
-		uint32_t level;
+		uint32_t level; // 1始まり
 	};
 
 	// とりあえずの box 配置（xIndex:横インデックス, yIndex:縦インデックス, level:段数）
-	std::vector<BoxPlacement> boxPositions = {
+	std::vector<TilePlacement> tilePlacements = {
 	    {3, 0, 1}, // 1段目
 	    {4, 0, 1},
 	    {5, 0, 1},
@@ -89,16 +89,13 @@ void GameScene::Initialize() {
 	    {6, 1, 2},
 	};
 
-	constexpr float kBoxBaseY = 1.0f;
-	constexpr float kBoxHeight = 1.0f;
-
-	for (const auto& tilePos : boxPositions) {
+	for (const auto& tilePos : tilePlacements) {
 		Box* newBox = new Box();
 		Vector3 boxPosition = mapChipField_->GetMapChipPositionByIndex(tilePos.xIndex, tilePos.yIndex);
 		boxPosition.y = kBoxBaseY + (static_cast<float>(tilePos.level) - 1.0f) * kBoxHeight;
 		newBox->Initialize(blockModel_, &camera_, boxPosition);
 
-		boxes_.push_back(newBox);
+		boxes_.push_back({newBox, tilePos.xIndex, tilePos.yIndex, tilePos.level});
 	}
 
 
@@ -191,8 +188,8 @@ void GameScene::Update() {
 		player_->Update();
 		CheckAllCollisions();
 
-		for (Box* box : boxes_) {
-			box->Update();
+		for (auto& entry : boxes_) {
+			entry.box->Update();
 		}
 		break;
 
@@ -247,8 +244,8 @@ void GameScene::Draw() {
 		deathParticles_->Draw();
 	}
 
-	for (Box* box : boxes_) {
-		box->Draw();
+	for (auto& entry : boxes_) {
+		entry.box->Draw();
 	}
 
 	Model::PostDraw();
@@ -266,17 +263,26 @@ void GameScene::CheckAllCollisions() {
 
 	AABB playerAABB = player_->GetAABB();
 
-	for (Box* box : boxes_) {
+	for (auto& entry : boxes_) {
 		// すでに壊れている場合はスキップ
-		if (!box->IsAlive()) {
+		if (!entry.box->IsAlive()) {
 			continue;
 		}
 
-		AABB boxAABB = box->GetAABB();
+		AABB boxAABB = entry.box->GetAABB();
 
 		if (IsCollision(playerAABB, boxAABB)) {
-				box->OnCollision();
-			
+			entry.box->OnCollision();
+
+			// 同じタイルの1段上にある箱を落下させる
+			for (auto& other : boxes_) {
+				if (!other.box->IsAlive() || other.box->IsFalling()) continue;
+				if (other.xIndex == entry.xIndex && other.yIndex == entry.yIndex && other.level == entry.level + 1) {
+					// 落下先は破壊された箱のY座標（1段下がった位置）
+					float targetY = kBoxBaseY + static_cast<float>(entry.level - 1) * kBoxHeight;
+					other.box->StartFalling(targetY);
+				}
+			}
 		}
 	}
 }
