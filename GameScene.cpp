@@ -65,8 +65,14 @@ void GameScene::Initialize() {
 	Vector3 playerPosition = mapChipField_->GetMapChipPositionByIndex(0, 0);
 	player_->Initialize(playerModel_, &camera_, playerPosition);
 
-	// とりあえずの box 配置（x:横インデックス, y:縦インデックス, z:段数）
-	std::vector<KamataEngine::Vector3> boxPositions = {
+	struct BoxPlacement {
+		uint32_t xIndex;
+		uint32_t yIndex;
+		uint32_t level;
+	};
+
+	// とりあえずの box 配置（xIndex:横インデックス, yIndex:縦インデックス, level:段数）
+	std::vector<BoxPlacement> boxPositions = {
 	    {3, 0, 1}, // 1段目
 	    {4, 0, 1},
 	    {5, 0, 1},
@@ -83,10 +89,13 @@ void GameScene::Initialize() {
 	    {6, 1, 2},
 	};
 
+	constexpr float kBoxBaseY = 1.0f;
+	constexpr float kBoxHeight = 1.0f;
+
 	for (const auto& tilePos : boxPositions) {
 		Box* newBox = new Box();
-		Vector3 boxPosition = mapChipField_->GetMapChipPositionByIndex(static_cast<uint32_t>(tilePos.x), static_cast<uint32_t>(tilePos.y));
-		boxPosition.y = tilePos.z;
+		Vector3 boxPosition = mapChipField_->GetMapChipPositionByIndex(tilePos.xIndex, tilePos.yIndex);
+		boxPosition.y = kBoxBaseY + (static_cast<float>(tilePos.level) - 1.0f) * kBoxHeight;
 		newBox->Initialize(blockModel_, &camera_, boxPosition);
 
 		boxes_.push_back(newBox);
