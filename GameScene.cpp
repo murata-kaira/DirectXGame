@@ -65,27 +65,28 @@ void GameScene::Initialize() {
 	Vector3 playerPosition = mapChipField_->GetMapChipPositionByIndex(0, 0);
 	player_->Initialize(playerModel_, &camera_, playerPosition);
 
-	//とりあえずのbox配置
-	std::vector<KamataEngine::Vector2> boxPositions = {
-	    {3,  0}, // 1つ目
-	    {4,  0},
-        {5,  0},
+	// とりあえずの box 配置（x:横インデックス, y:縦インデックス, z:段数）
+	std::vector<KamataEngine::Vector3> boxPositions = {
+	    {3, 0, 1}, // 1段目
+	    {4, 0, 1},
+	    {5, 0, 1},
 
-		{1,1},
-        {2,2},
-		{3,3},
-        {4,4},
+	    {1, 1, 1},
+	    {2, 2, 1},
+	    {3, 3, 1},
+	    {4, 4, 1},
 
-		{1.0},
-        {0,1},
+	    {0, 1, 1},
 
+	    // 2段積み
+	    {6, 1, 1},
+	    {6, 1, 2},
 	};
 
 	for (const auto& tilePos : boxPositions) {
 		Box* newBox = new Box();
 		Vector3 boxPosition = mapChipField_->GetMapChipPositionByIndex(static_cast<uint32_t>(tilePos.x), static_cast<uint32_t>(tilePos.y));
-		boxPosition.y = 1.0f; //とりあえずこれで座標を一個上にしている
-		Vector3 boxSize = {1.0f, 1.0f, 1.0f};
+		boxPosition.y = tilePos.z;
 		newBox->Initialize(blockModel_, &camera_, boxPosition);
 
 		boxes_.push_back(newBox);
