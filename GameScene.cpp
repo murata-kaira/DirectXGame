@@ -84,9 +84,13 @@ void GameScene::Initialize() {
 
 	    {0, 1, 1},
 
-	    // 2段積み
+	    // 6段積み
 	    {6, 1, 1},
 	    {6, 1, 2},
+	    {6, 1, 3},
+	    {6, 1, 4},
+	    {6, 1, 5},
+	    {6, 1, 6},
 	};
 
 	for (const auto& tilePos : tilePlacements) {
