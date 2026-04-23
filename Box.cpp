@@ -28,7 +28,6 @@ void Box::Update() {
 			worldTransform_.translation_.y = fallTargetY_;
 			falling_ = false;
 			fallVelocity_ = 0.0f;
-			justLanded_ = true; // 着地を通知
 		}
 	}
 

@@ -196,17 +196,26 @@ void GameScene::Update() {
 			entry.box->Update();
 		}
 
-		// 着地した箱の直上にある箱を連鎖落下させる
+		// 支えを失った箱を毎フレーム検出して連鎖落下させる
 		for (auto& entry : boxes_) {
-			if (!entry.box->IsAlive()) continue;
-			if (!entry.box->JustLanded()) continue;
-			entry.box->ClearJustLanded();
-			float nextTargetY = entry.box->GetCurrentY() + kBoxHeight;
-			for (auto& other : boxes_) {
-				if (!other.box->IsAlive() || other.box->IsFalling()) continue;
-				if (other.xIndex == entry.xIndex && other.yIndex == entry.yIndex && other.level == entry.level + 1) {
-					other.box->StartFalling(nextTargetY);
+			if (!entry.box->IsAlive() || entry.box->IsFalling()) continue;
+			if (entry.level == 1) continue; // 最下段は直下ボックスなし
+
+			for (auto& lower : boxes_) {
+				if (lower.xIndex != entry.xIndex || lower.yIndex != entry.yIndex || lower.level != entry.level - 1) continue;
+
+				if (!lower.box->IsAlive()) {
+					// 直下の箱が消えた → 1段分落下
+					entry.box->StartFalling(entry.box->GetCurrentY() - kBoxHeight);
+				} else if (!lower.box->IsFalling()) {
+					float lowerY = lower.box->GetCurrentY();
+					float lowerOriginalY = kBoxBaseY + static_cast<float>(lower.level - 1) * kBoxHeight;
+					if (lowerY < lowerOriginalY - 0.01f) {
+						// 直下の箱が沈んで着地済み → 自分も1段落下
+						entry.box->StartFalling(lowerY + kBoxHeight);
+					}
 				}
+				break;
 			}
 		}
 		break;
