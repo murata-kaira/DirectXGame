@@ -20,6 +20,20 @@ void Box::Update() {
 		return;
 	}
 
+
+		// 落下中なら重力を適用
+	if (falling_) {
+		fallVelocity_ += kGravity / 60.0f;
+		worldTransform_.translation_.y -= fallVelocity_;
+		if (worldTransform_.translation_.y <= fallTargetY_) {
+			worldTransform_.translation_.y = fallTargetY_;
+			falling_ = false;
+			fallVelocity_ = 0.0f;
+		}
+	}
+
+
+
 	// 行列の更新 (Enemy.cpp と同じ計算式)
 	worldTransform_.matWorld_ = MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
 
@@ -39,6 +53,15 @@ void Box::OnCollision() {
 		breakCount++; // 壊した数を加算
 	}
 }
+
+void Box::StartFalling(float targetY) {
+	falling_ = true;
+	fallVelocity_ = 0.0f;
+	fallTargetY_ = targetY;
+}
+
+
+
 
 Vector3 Box::GetWorldPosition() {
 	Vector3 worldPos;

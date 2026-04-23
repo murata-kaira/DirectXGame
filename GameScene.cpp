@@ -18,7 +18,7 @@ GameScene::~GameScene() {
 	for (std::vector<WorldTransform*>& worldTransformBlockLine : worldTransformBlocks_) {
 		for (WorldTransform* worldTransformBlock : worldTransformBlockLine) {
 			delete worldTransformBlock;
-		}
+		}     
 	}
 	worldTransformBlocks_.clear();
 	
@@ -65,30 +65,38 @@ void GameScene::Initialize() {
 	Vector3 playerPosition = mapChipField_->GetMapChipPositionByIndex(0, 0);
 	player_->Initialize(playerModel_, &camera_, playerPosition);
 
-	//とりあえずのbox配置
-	std::vector<KamataEngine::Vector2> boxPositions = {
-	    {3,  0}, // 1つ目
-	    {4,  0},
-        {5,  0},
-
-		{1,1},
-        {2,2},
-		{3,3},
-        {4,4},
-
-		{1.0},
-        {0,1},
-
+struct TilePlacement {
+		uint32_t xIndex;
+		uint32_t yIndex;
+		uint32_t level; // 1始まり
 	};
 
-	for (const auto& tilePos : boxPositions) {
+	// とりあえずの box 配置（xIndex:横インデックス, yIndex:縦インデックス, level:段数）
+	std::vector<TilePlacement> tilePlacements = {
+	    {3, 0, 1}, // 1段目
+	    {4, 0, 1},
+	    {5, 0, 1},
+	    {1, 1, 1},
+	    {2, 2, 1},
+	    {3, 3, 1},
+	    {4, 4, 1},
+	    {0, 1, 1},
+	    // 6段積み
+	    {1, 1, 1},
+	    {1, 1, 2},
+	    {1, 1, 3},
+	    {1, 1, 4},
+	    {1, 1, 5},
+	    {1, 1, 6},
+	};
+
+	for (const auto& tilePos : tilePlacements) {
 		Box* newBox = new Box();
-		Vector3 boxPosition = mapChipField_->GetMapChipPositionByIndex(static_cast<uint32_t>(tilePos.x), static_cast<uint32_t>(tilePos.y));
-		boxPosition.y = 1.0f; //とりあえずこれで座標を一個上にしている
-		Vector3 boxSize = {1.0f, 1.0f, 1.0f};
+		Vector3 boxPosition = mapChipField_->GetMapChipPositionByIndex(tilePos.xIndex, tilePos.yIndex);
+		boxPosition.y = kBoxBaseY + (static_cast<float>(tilePos.level) - 1.0f) * kBoxHeight;
 		newBox->Initialize(blockModel_, &camera_, boxPosition);
 
-		boxes_.push_back(newBox);
+	boxes_.push_back({newBox, tilePos.xIndex, tilePos.yIndex, tilePos.level});
 	}
 
 
@@ -181,8 +189,8 @@ void GameScene::Update() {
 		player_->Update();
 		CheckAllCollisions();
 
-		for (Box* box : boxes_) {
-			box->Update();
+	for (auto& entry : boxes_) {
+			entry.box->Update();
 		}
 		break;
 
@@ -236,9 +244,8 @@ void GameScene::Draw() {
 	if (player_->IsDead() && deathParticles_) {
 		deathParticles_->Draw();
 	}
-
-	for (Box* box : boxes_) {
-		box->Draw();
+	for (auto& entry : boxes_) {
+		entry.box->Draw();
 	}
 
 	Model::PostDraw();
@@ -256,17 +263,20 @@ void GameScene::CheckAllCollisions() {
 
 	AABB playerAABB = player_->GetAABB();
 
-	for (Box* box : boxes_) {
-		// すでに壊れている場合はスキップ
-		if (!box->IsAlive()) {
+	for (auto& entry : boxes_) {
+		// すでに壊れている、または落下中の場合はスキップ
+		if (!entry.box->IsAlive() || entry.box->IsFalling()) {
 			continue;
 		}
 
-		AABB boxAABB = box->GetAABB();
+			AABB boxAABB = entry.box->GetAABB();
+
 
 		if (IsCollision(playerAABB, boxAABB)) {
-				box->OnCollision();
-			
+			    entry.box->OnCollision();
+			  
+		// 1フレームで1個だけ壊す
+			    break;
 		}
 	}
 }

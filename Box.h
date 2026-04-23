@@ -16,11 +16,18 @@ public:
 	/// @brief 描画
 	void Draw();
 
-	/// @brief 破壊処理
+	/// 破壊処理
 	void OnCollision();
+
+	/// 落下開始（上の支えが消えたとき呼ぶ）
+	void StartFalling(float targetY);
+
 
 	// --- ゲッター ---
 	bool IsAlive() const { return alive_; }
+	bool IsFalling() const { return falling_; }
+	float GetCurrentY() const { return worldTransform_.translation_.y; }
+	float GetFallTargetY() const { return fallTargetY_; }
 	KamataEngine::Vector3 GetWorldPosition();
 	AABB GetAABB();
 
@@ -35,4 +42,14 @@ private:
 	KamataEngine::Camera* camera_ = nullptr;  
 
 	bool alive_ = true; // 壊れていないか
+
+	// --- 落下処理 ---
+	bool falling_ = false;      // 落下中フラグ
+	float fallVelocity_ = 0.0f; // 落下速度（フレームごとに加速）
+	float fallTargetY_ = 0.0f;  // 落下先のY座標
+
+
+	static inline const float kGravity = 1.0f; // 重力加速度 (units/秒²)
+
+
 };
