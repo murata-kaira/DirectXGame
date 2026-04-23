@@ -47,5 +47,5 @@ private:
 	float fallVelocity_ = 0.0f;  // 落下速度（フレームごとに加速）
 	float fallTargetY_ = 0.0f;   // 落下先のY座標
 
-	static inline const float kGravity = 20.0f; // 重力加速度 (units/秒²)
+	static inline const float kGravity = 60.0f; // 重力加速度 (units/秒²) ─ 達磨落とし的な即落ち感
 };
