@@ -1,5 +1,6 @@
 #include "GameScene.h"
 #include "Math.h"
+#include <limits>
 
 using namespace KamataEngine;
 
@@ -228,7 +229,9 @@ void GameScene::UpdateBoxFalls() {
 	uint32_t guard = 0;
 	// このシーンでの最大積み段数（tilePlacementsの想定上限）ぶんだけ繰り返し可能にする
 	static constexpr uint32_t kMaxCascadeDepth = 8;
-	const uint32_t maxIterations = static_cast<uint32_t>(boxes_.size()) * kMaxCascadeDepth + 1;
+	const uint64_t rawMaxIterations = static_cast<uint64_t>(boxes_.size()) * kMaxCascadeDepth + 1;
+	const uint32_t maxIterations =
+	    rawMaxIterations > std::numeric_limits<uint32_t>::max() ? std::numeric_limits<uint32_t>::max() : static_cast<uint32_t>(rawMaxIterations);
 	do {
 		startedFall = false;
 		for (auto& entry : boxes_) {
