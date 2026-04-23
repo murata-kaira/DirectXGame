@@ -196,37 +196,6 @@ void GameScene::Update() {
 			entry.box->Update();
 		}
 
-		// 支えを失った箱を毎フレーム検出して連鎖落下させる
-		for (auto& entry : boxes_) {
-			if (!entry.box->IsAlive() || entry.box->IsFalling()) continue;
-			if (entry.level == 1) continue; // 最下段は直下ボックスなし
-
-			for (auto& lower : boxes_) {
-				if (lower.xIndex != entry.xIndex || lower.yIndex != entry.yIndex || lower.level != entry.level - 1) continue;
-
-				if (!lower.box->IsAlive()) {
-					// 直下の箱が消えた → 1段分落下（kBoxBaseY より下には落ちない）
-					float targetY = entry.box->GetCurrentY() - kBoxHeight;
-					if (targetY >= kBoxBaseY) {
-						entry.box->StartFalling(targetY);
-					}
-				} else if (lower.box->IsFalling()) {
-					// 直下の箱が落下中 → 自分も同時に落下（連鎖）
-					entry.box->StartFalling(lower.box->GetFallTargetY() + kBoxHeight);
-				} else {
-					float lowerY = lower.box->GetCurrentY();
-					float lowerOriginalY = kBoxBaseY + static_cast<float>(lower.level - 1) * kBoxHeight;
-					if (lowerY < lowerOriginalY - 0.01f) {
-						// 直下の箱が沈んで着地済み → まだ落ちていない場合のみ落下
-						float targetY = lowerY + kBoxHeight;
-						if (targetY < entry.box->GetCurrentY() - 0.01f) {
-							entry.box->StartFalling(targetY);
-						}
-					}
-				}
-				break;
-			}
-		}
 		break;
 
 	case Phase::kDeath:
