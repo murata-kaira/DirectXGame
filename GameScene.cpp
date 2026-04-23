@@ -188,6 +188,7 @@ void GameScene::Update() {
 	case Phase::kPlay:
 		player_->Update();
 		CheckAllCollisions();
+		UpdateBoxFalls();
 
 	for (auto& entry : boxes_) {
 			entry.box->Update();
@@ -219,6 +220,39 @@ void GameScene::Update() {
 			if (block) WorldTransformUpdate(*block);
 		}
 	}
+}
+
+void GameScene::UpdateBoxFalls() {
+	// 支持関係が連鎖して変わるため、落下開始が発生しなくなるまで評価する
+	bool startedFall = false;
+	do {
+		startedFall = false;
+		for (auto& entry : boxes_) {
+			if (!entry.box->IsAlive() || entry.box->IsFalling() || entry.level <= 1) {
+				continue;
+			}
+
+			const uint32_t supportLevel = entry.level - 1;
+			bool hasSupport = false;
+			for (const auto& supportCandidate : boxes_) {
+				if (!supportCandidate.box->IsAlive() || supportCandidate.box->IsFalling()) {
+					continue;
+				}
+				if (supportCandidate.xIndex == entry.xIndex && supportCandidate.yIndex == entry.yIndex &&
+				    supportCandidate.level == supportLevel) {
+					hasSupport = true;
+					break;
+				}
+			}
+
+			if (!hasSupport) {
+				const float targetY = kBoxBaseY + (static_cast<float>(supportLevel) - 1.0f) * kBoxHeight;
+				entry.box->StartFalling(targetY);
+				entry.level = supportLevel;
+				startedFall = true;
+			}
+		}
+	} while (startedFall);
 }
 
 /**

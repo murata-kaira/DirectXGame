@@ -48,6 +48,8 @@ private:
 
 	/// @brief フェーズの変更
 	void ChangePhase();
+	/// @brief 箱の支持状態を確認し、必要なら落下開始
+	void UpdateBoxFalls();
 
 	// --- 3Dモデルデータ ---
 	KamataEngine::Model* model_ = nullptr;              // 汎用モデル
