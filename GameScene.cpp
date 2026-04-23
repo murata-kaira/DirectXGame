@@ -313,6 +313,9 @@ void GameScene::CheckAllCollisions() {
 					other.box->StartFalling(targetY);
 				}
 			}
+
+			// 1フレームで1個だけ壊す
+			break;
 		}
 	}
 }
