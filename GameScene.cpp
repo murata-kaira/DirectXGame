@@ -226,7 +226,9 @@ void GameScene::UpdateBoxFalls() {
 	// 支持関係が連鎖して変わるため、落下開始が発生しなくなるまで評価する
 	bool startedFall = false;
 	uint32_t guard = 0;
-	const uint32_t maxIterations = static_cast<uint32_t>(boxes_.size()) * 8 + 1;
+	// このシーンでの最大積み段数（tilePlacementsの想定上限）ぶんだけ繰り返し可能にする
+	static constexpr uint32_t kMaxCascadeDepth = 8;
+	const uint32_t maxIterations = static_cast<uint32_t>(boxes_.size()) * kMaxCascadeDepth + 1;
 	do {
 		startedFall = false;
 		for (auto& entry : boxes_) {
