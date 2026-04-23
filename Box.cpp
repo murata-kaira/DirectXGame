@@ -20,10 +20,23 @@ void Box::Update() {
 		return;
 	}
 
+	const float dt = 1.0f / 60.0f;
 
+
+	// 吹っ飛び中：水平速度 ＋ 重力 ＋ 回転
+	if (isBlownAway_) {
+		blowVelocity_.y -= kGravity * dt;
+		worldTransform_.translation_.x += blowVelocity_.x * dt;
+		worldTransform_.translation_.y += blowVelocity_.y * dt;
+		worldTransform_.translation_.z += blowVelocity_.z * dt;
+		worldTransform_.rotation_.z += blowAngularVelocity_ * dt;
+		// 画面外（十分低い位置）まで落ちたら消滅
+		if (worldTransform_.translation_.y < kDisappearY) {
+			alive_ = false;
+		}
 		// 落下中なら重力を適用
-	if (falling_) {
-		fallVelocity_ += kGravity / 60.0f;
+	} else if (falling_) {
+		fallVelocity_ += kGravity * dt;
 		worldTransform_.translation_.y -= fallVelocity_;
 		if (worldTransform_.translation_.y <= fallTargetY_) {
 			worldTransform_.translation_.y = fallTargetY_;
@@ -47,11 +60,17 @@ void Box::Draw() {
 	}
 }
 
-void Box::OnCollision() {
-	if (alive_) {
-		alive_ = false;
-		breakCount++; // 壊した数を加算
-	}
+void Box::OnCollision(const Vector3& blowDirection) {
+	if (!alive_ || isBlownAway_)
+		return;
+	isBlownAway_ = true;
+	breakCount++; // 壊した数を加算
+	// 吹っ飛び初速：プレイヤーの移動方向（水平）＋ わずかな上方向
+	blowVelocity_.x = blowDirection.x * kBlowSpeed;
+	blowVelocity_.y = kBlowUpSpeed;
+	blowVelocity_.z = blowDirection.z * kBlowSpeed;
+	// 吹っ飛び回転角速度を設定
+	blowAngularVelocity_ = kBlowAngularVelocity;
 }
 
 void Box::StartFalling(float targetY) {
@@ -72,7 +91,7 @@ Vector3 Box::GetWorldPosition() {
 }
 
 AABB Box::GetAABB() {
-	if (!alive_) {
+	if (!alive_ || isBlownAway_) {
 		return {
 		    {0, 0, 0},
             {0, 0, 0}

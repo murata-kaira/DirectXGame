@@ -264,8 +264,8 @@ void GameScene::CheckAllCollisions() {
 	AABB playerAABB = player_->GetAABB();
 
 	for (auto& entry : boxes_) {
-		// すでに壊れている、または落下中の場合はスキップ
-		if (!entry.box->IsAlive() || entry.box->IsFalling()) {
+		// すでに壊れている、吹っ飛び中、または落下中の場合はスキップ
+		if (!entry.box->IsAlive() || entry.box->IsBlownAway() || entry.box->IsFalling()) {
 			continue;
 		}
 
@@ -273,7 +273,19 @@ void GameScene::CheckAllCollisions() {
 
 
 		if (IsCollision(playerAABB, boxAABB)) {
-			    entry.box->OnCollision();
+			    // プレイヤーの移動方向に吹っ飛ばす（達磨落とし）
+			    entry.box->OnCollision(player_->GetMoveDirection());
+			    // 同じ列で上にある箱を落下させる
+			    for (auto& above : boxes_) {
+				    if (above.box == entry.box)
+					    continue;
+				    if (above.xIndex == entry.xIndex && above.yIndex == entry.yIndex && above.level > entry.level) {
+					    if (above.box->IsAlive() && !above.box->IsBlownAway()) {
+						    float targetY = above.box->GetCurrentY() - kBoxHeight;
+						    above.box->StartFalling(targetY);
+					    }
+				    }
+			    }
 			  
 		// 1フレームで1個だけ壊す
 			    break;
