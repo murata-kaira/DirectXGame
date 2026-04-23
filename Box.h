@@ -26,6 +26,7 @@ public:
 	bool IsAlive() const { return alive_; }
 	bool IsFalling() const { return falling_; }
 	float GetCurrentY() const { return worldTransform_.translation_.y; }
+	float GetFallTargetY() const { return fallTargetY_; }
 	KamataEngine::Vector3 GetWorldPosition();
 	AABB GetAABB();
 

@@ -207,7 +207,10 @@ void GameScene::Update() {
 				if (!lower.box->IsAlive()) {
 					// 直下の箱が消えた → 1段分落下
 					entry.box->StartFalling(entry.box->GetCurrentY() - kBoxHeight);
-				} else if (!lower.box->IsFalling()) {
+				} else if (lower.box->IsFalling()) {
+					// 直下の箱が落下中 → 自分も同時に落下（連鎖）
+					entry.box->StartFalling(lower.box->GetFallTargetY() + kBoxHeight);
+				} else {
 					float lowerY = lower.box->GetCurrentY();
 					float lowerOriginalY = kBoxBaseY + static_cast<float>(lower.level - 1) * kBoxHeight;
 					if (lowerY < lowerOriginalY - 0.01f) {
