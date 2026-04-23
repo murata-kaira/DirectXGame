@@ -294,8 +294,8 @@ void GameScene::CheckAllCollisions() {
 	AABB playerAABB = player_->GetAABB();
 
 	for (auto& entry : boxes_) {
-		// すでに壊れている場合はスキップ
-		if (!entry.box->IsAlive()) {
+		// すでに壊れている、または落下中の場合はスキップ
+		if (!entry.box->IsAlive() || entry.box->IsFalling()) {
 			continue;
 		}
 
