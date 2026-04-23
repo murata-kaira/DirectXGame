@@ -304,16 +304,6 @@ void GameScene::CheckAllCollisions() {
 		if (IsCollision(playerAABB, boxAABB)) {
 			entry.box->OnCollision();
 
-			// 同じタイルの1段上にある箱を落下させる
-			for (auto& other : boxes_) {
-				if (!other.box->IsAlive() || other.box->IsFalling()) continue;
-				if (other.xIndex == entry.xIndex && other.yIndex == entry.yIndex && other.level == entry.level + 1) {
-					// 落下先は破壊された箱のY座標（1段下がった位置）
-					float targetY = kBoxBaseY + static_cast<float>(entry.level - 1) * kBoxHeight;
-					other.box->StartFalling(targetY);
-				}
-			}
-
 			// 1フレームで1個だけ壊す
 			break;
 		}
