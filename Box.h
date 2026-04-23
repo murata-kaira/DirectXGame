@@ -25,6 +25,9 @@ public:
 	// --- ゲッター ---
 	bool IsAlive() const { return alive_; }
 	bool IsFalling() const { return falling_; }
+	bool JustLanded() const { return justLanded_; }
+	void ClearJustLanded() { justLanded_ = false; }
+	float GetCurrentY() const { return worldTransform_.translation_.y; }
 	KamataEngine::Vector3 GetWorldPosition();
 	AABB GetAABB();
 
@@ -42,6 +45,7 @@ private:
 
 	// --- 落下処理 ---
 	bool falling_ = false;       // 落下中フラグ
+	bool justLanded_ = false;    // 今フレームに着地したフラグ
 	float fallVelocity_ = 0.0f;  // 落下速度（フレームごとに加速）
 	float fallTargetY_ = 0.0f;   // 落下先のY座標
 

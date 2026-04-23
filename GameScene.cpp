@@ -195,6 +195,20 @@ void GameScene::Update() {
 		for (auto& entry : boxes_) {
 			entry.box->Update();
 		}
+
+		// 着地した箱の直上にある箱を連鎖落下させる
+		for (auto& entry : boxes_) {
+			if (!entry.box->IsAlive()) continue;
+			if (!entry.box->JustLanded()) continue;
+			entry.box->ClearJustLanded();
+			float nextTargetY = entry.box->GetCurrentY() + kBoxHeight;
+			for (auto& other : boxes_) {
+				if (!other.box->IsAlive() || other.box->IsFalling()) continue;
+				if (other.xIndex == entry.xIndex && other.yIndex == entry.yIndex && other.level == entry.level + 1) {
+					other.box->StartFalling(nextTargetY);
+				}
+			}
+		}
 		break;
 
 	case Phase::kDeath:
