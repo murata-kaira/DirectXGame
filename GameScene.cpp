@@ -1,6 +1,7 @@
 #include "GameScene.h"
 #include "Math.h"
 #include <algorithm>
+#include <cassert>
 
 using namespace KamataEngine;
 
@@ -89,6 +90,8 @@ GameScene::~GameScene() {
  * @brief 初期化
  */
 void GameScene::Initialize(uint32_t stageIndex) {
+	// ステージインデックスが範囲内であることを確認
+	assert(stageIndex < std::size(kStageCsvFiles));
 	stageIndex_ = stageIndex;
 
 	// --- 1. システム・カメラの初期化 ---
