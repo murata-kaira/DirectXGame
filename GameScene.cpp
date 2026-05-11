@@ -1,7 +1,57 @@
 #include "GameScene.h"
 #include "Math.h"
+#include <algorithm>
 
 using namespace KamataEngine;
+
+namespace {
+
+// ステージごとの CSV ファイルパス
+const char* kStageCsvFiles[] = {
+    "Resources/blocks.csv",
+    "Resources/blocks 02.csv",
+    "Resources/blocks 03.csv",
+};
+
+// ステージごとの箱配置
+struct TilePlacement {
+	uint32_t xIndex;
+	uint32_t yIndex;
+	uint32_t level; // 1始まり
+};
+
+const std::vector<TilePlacement> kStagePlacements[] = {
+    // ステージ 0：チュートリアル（疎な配置 ＋ 6段タワー）
+    {
+        {3, 0, 1}, {4, 0, 1}, {5, 0, 1},
+        {0, 1, 1}, {1, 1, 1},
+        {2, 2, 1}, {3, 3, 1}, {4, 4, 1},
+        // 6段積み
+        {1, 1, 1}, {1, 1, 2}, {1, 1, 3},
+        {1, 1, 4}, {1, 1, 5}, {1, 1, 6},
+    },
+    // ステージ 1：中級（複数の 3〜4 段タワー）
+    {
+        {2, 0, 1}, {2, 0, 2},
+        {5, 0, 1}, {5, 0, 2}, {5, 0, 3},
+        {8, 0, 1}, {8, 0, 2}, {8, 0, 3}, {8, 0, 4},
+        {3, 3, 1}, {3, 3, 2}, {3, 3, 3},
+        {6, 3, 1}, {6, 3, 2},
+        {1, 6, 1}, {4, 6, 1}, {7, 6, 1},
+    },
+    // ステージ 2：上級（多数の高タワー）
+    {
+        {1, 0, 1}, {1, 0, 2}, {1, 0, 3}, {1, 0, 4},
+        {3, 0, 1}, {3, 0, 2}, {3, 0, 3}, {3, 0, 4}, {3, 0, 5},
+        {5, 0, 1}, {5, 0, 2}, {5, 0, 3},
+        {7, 0, 1}, {7, 0, 2}, {7, 0, 3}, {7, 0, 4}, {7, 0, 5}, {7, 0, 6},
+        {2, 4, 1}, {2, 4, 2}, {2, 4, 3},
+        {5, 4, 1}, {5, 4, 2}, {5, 4, 3}, {5, 4, 4},
+        {8, 4, 1}, {8, 4, 2},
+    },
+};
+
+} // namespace
 
 /**
  * @brief デストラクタ
@@ -23,6 +73,11 @@ GameScene::~GameScene() {
 	worldTransformBlocks_.clear();
 	
 	delete deathParticles_;
+
+	for (auto& entry : boxes_) {
+		delete entry.box;
+	}
+	boxes_.clear();
 	
 	delete playerModel_;
 	delete blockModel_;
@@ -33,7 +88,9 @@ GameScene::~GameScene() {
 /**
  * @brief 初期化
  */
-void GameScene::Initialize() {
+void GameScene::Initialize(uint32_t stageIndex) {
+	stageIndex_ = stageIndex;
+
 	// --- 1. システム・カメラの初期化 ---
 	camera_.Initialize();
 	// カメラを斜め上からの俯瞰視点に設定
@@ -55,7 +112,7 @@ void GameScene::Initialize() {
 
 	// --- 3. マップの生成 ---
 	mapChipField_ = new MapChipField();
-	mapChipField_->LoadMapChipCsv("Resources/blocks.csv");
+	mapChipField_->LoadMapChipCsv(kStageCsvFiles[stageIndex_]);
 	GenerateBlocks();
 
 	// --- 4. プレイヤーの生成と初期化 ---
@@ -65,32 +122,7 @@ void GameScene::Initialize() {
 	Vector3 playerPosition = mapChipField_->GetMapChipPositionByIndex(0, 0);
 	player_->Initialize(playerModel_, &camera_, playerPosition);
 
-struct TilePlacement {
-		uint32_t xIndex;
-		uint32_t yIndex;
-		uint32_t level; // 1始まり
-	};
-
-	// とりあえずの box 配置（xIndex:横インデックス, yIndex:縦インデックス, level:段数）
-	std::vector<TilePlacement> tilePlacements = {
-	    {3, 0, 1}, // 1段目
-	    {4, 0, 1},
-	    {5, 0, 1},
-	    {1, 1, 1},
-	    {2, 2, 1},
-	    {3, 3, 1},
-	    {4, 4, 1},
-	    {0, 1, 1},
-	    // 6段積み
-	    {1, 1, 1},
-	    {1, 1, 2},
-	    {1, 1, 3},
-	    {1, 1, 4},
-	    {1, 1, 5},
-	    {1, 1, 6},
-	};
-
-	for (const auto& tilePos : tilePlacements) {
+	for (const auto& tilePos : kStagePlacements[stageIndex_]) {
 		Box* newBox = new Box();
 		Vector3 boxPosition = mapChipField_->GetMapChipPositionByIndex(tilePos.xIndex, tilePos.yIndex);
 		boxPosition.y = kBoxBaseY + (static_cast<float>(tilePos.level) - 1.0f) * kBoxHeight;
@@ -127,12 +159,25 @@ void GameScene::ChangePhase() {
 			const Vector3& deathParticlesPosition = player_->GetWorldPosition();
 			deathParticles_ = new DeathParticles;
 			deathParticles_->Initialize(deathParticleModel_, &camera_, deathParticlesPosition);
+		} else if (!boxes_.empty() &&
+		           std::all_of(boxes_.begin(), boxes_.end(),
+		                       [](const BoxEntry& e) { return !e.box->IsAlive(); })) {
+			// 全ての箱が破壊された → ステージクリア
+			phase_ = Phase::kStageClear;
+			isClear_ = true;
+			fade_->Start(Fade::Status::FadeOut, 1.0f);
 		}
 		break;
 	case Phase::kDeath:
 		if (deathParticles_ && deathParticles_->IsFinished()) {
 			phase_ = Phase::kFadeOut;
 			fade_->Start(Fade::Status::FadeOut, 1.0f);
+		}
+		break;
+	case Phase::kStageClear:
+		fade_->Update();
+		if (fade_->IsFinished()) {
+			finished_ = true;
 		}
 		break;
 	case Phase::kFadeOut:

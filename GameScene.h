@@ -18,8 +18,8 @@ public:
 	
 	~GameScene();
 
-	/// @brief 初期化
-	void Initialize();
+	/// @brief 初期化（stageIndex: 0始まりのステージ番号）
+	void Initialize(uint32_t stageIndex = 0);
 
 	/// @brief 更新
 	void Update();
@@ -36,13 +36,17 @@ public:
 	/// @brief シーン終了フラグを取得
 	bool IsFinished() const { return finished_; }
 
+	/// @brief ステージクリアフラグを取得
+	bool IsCleared() const { return isClear_; }
+
 private:
 	// --- 内部フェーズ管理 ---
 	enum class Phase {
-		kFadeIn,  // フェードイン
-		kPlay,    // ゲームプレイ中
-		kDeath,   // 死亡演出中
-		kFadeOut, // フェードアウト
+		kFadeIn,     // フェードイン
+		kPlay,       // ゲームプレイ中
+		kDeath,      // 死亡演出中
+		kStageClear, // ステージクリア演出中
+		kFadeOut,    // フェードアウト
 	};
 	Phase phase_; // 現在の進行状況
 
@@ -72,6 +76,8 @@ private:
 	// --- システム関連 ---
 	Fade* fade_ = nullptr;      // 画面フェード演出
 	bool finished_ = false;    // シーン終了フラグ
+	bool isClear_ = false;     // ステージクリアフラグ
+	uint32_t stageIndex_ = 0;  // 現在のステージ番号（0始まり）
 	
 	// ブロックの座標情報などのリスト
 	std::vector<std::vector<KamataEngine::WorldTransform*>> worldTransformBlocks_;

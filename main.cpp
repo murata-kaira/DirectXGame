@@ -18,6 +18,9 @@ enum class Scene {
 
 Scene scene = Scene::kUnknown; // 現在のシーン
 
+static const uint32_t kNumStages = 3; // ステージ総数
+static uint32_t currentStage = 0;     // 現在のステージ番号（0始まり）
+
 /**
  * @brief シーンの切り替え判定と実行
  * 各シーンの終了フラグをチェックし、次のシーンへ遷移させる。
@@ -33,24 +36,41 @@ void ChangeScene() {
 			delete titleScene;
 			titleScene = nullptr;
 
-			// ゲームシーンの作成と初期化
+			// ゲームシーンの作成と初期化（ステージ番号を渡す）
 			gameScene = new GameScene;
-			gameScene->Initialize();
+			gameScene->Initialize(currentStage);
 		}
 		break;
 
 	case Scene::kGame:
-		// ゲームシーンが終了していたら、タイトルシーンへ
+		// ゲームシーンが終了していたら、次のステージへ or タイトルへ
 		if (gameScene->IsFinished()) {
-			scene = Scene::kTitle;
-
-			// ゲームシーンのメモリを解放
-			delete gameScene;
-			gameScene = nullptr;
-
-			// タイトルシーンの作成と初期化
-			titleScene = new TitleScene;
-			titleScene->Initialize();
+			if (gameScene->IsCleared()) {
+				// ステージクリア：次のステージへ進む
+				++currentStage;
+				if (currentStage < kNumStages) {
+					// 次のステージを読み込む（シーンはそのまま kGame）
+					delete gameScene;
+					gameScene = new GameScene;
+					gameScene->Initialize(currentStage);
+				} else {
+					// 全ステージクリア：タイトルへ戻る
+					currentStage = 0;
+					scene = Scene::kTitle;
+					delete gameScene;
+					gameScene = nullptr;
+					titleScene = new TitleScene;
+					titleScene->Initialize();
+				}
+			} else {
+				// 死亡：ステージをリセットしてタイトルへ戻る
+				currentStage = 0;
+				scene = Scene::kTitle;
+				delete gameScene;
+				gameScene = nullptr;
+				titleScene = new TitleScene;
+				titleScene->Initialize();
+			}
 		}
 		break;
 	}
@@ -94,6 +114,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int) {
 	DirectXCommon* dxCommon = DirectXCommon::GetInstance();
 	
 	// 最初のシーンをタイトルに設定
+	currentStage = 0;
 	scene = Scene::kTitle;
 	titleScene = new TitleScene;
 	titleScene->Initialize();
